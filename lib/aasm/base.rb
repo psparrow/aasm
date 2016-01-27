@@ -63,7 +63,21 @@ module AASM
     end
 
     # define a state
-    def state(name, options={})
+    def state(name, options={}, &block)
+      if block_given?
+        callbacks = options[:before_enter] || []
+        callbacks = [callbacks] unless callbacks.kind_of? Array
+
+        p = Proc.new do |record, *args|
+          metaclass = class << record; self; end
+          metaclass.class_eval &block
+        end
+
+        callbacks.unshift p
+
+        options[:before_enter] = callbacks
+      end
+
       @state_machine.add_state(name, @klass, options)
 
       if @klass.instance_methods.include?("#{name}?")
